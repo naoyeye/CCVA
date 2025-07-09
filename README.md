@@ -1,6 +1,8 @@
-# clip-youtube-video-to-audio
+# CCVA
 
-A small **Python 3** utility that can download a YouTube video, cut out a specific segment and convert it into an audio file (MP3 / WAV / AIFF).
+Clip-and-Convert-Video-to-Audio
+
+A small **Python 3** utility that can download a video from YouTube, Bilibili (bilibili.com), or any site supported by yt-dlp, cut out a specific segment and convert it into an audio file (MP3 / WAV / AIFF).
 
 ## Features
 
@@ -25,8 +27,8 @@ sudo apt-get update && sudo apt-get install -y ffmpeg
 
 ```bash
 # Clone the repository (or download the code)
-$ git clone https://github.com/yourname/clip-youtube-video-to-audio.git
-$ cd clip-youtube-video-to-audio
+$ git clone https://github.com/yourname/CCVA.git
+$ cd CCVA
 
 # Install Python dependencies
 $ python -m pip install -r requirements.txt
@@ -35,18 +37,20 @@ $ python -m pip install -r requirements.txt
 ## Usage
 
 ```bash
-python index.py <youtube_url> <start_time> <end_time> <format> <output_path>
+python index.py --url <video_url> --format <format> --output <output_path>
+# Or specify start and end time:
+python index.py --url <video_url> --start <start_time> --end <end_time> --format <format> --output <output_path>
 ```
 
 Arguments:
 
 | Name          | Description                                                                                   | Example                         |
 | ------------- | --------------------------------------------------------------------------------------------- | -------------------------------- |
-| `youtube_url` | Full YouTube video link (any format accepted by yt-dlp)                                       | `https://youtu.be/dQw4w9WgXcQ`  |
-| `start_time`  | Clip **start** time. Accepts `SS`, `MM:SS`, `HH:MM:SS` or `HH:MM:SS.mmm`                      | `90` / `01:30` / `00:01:30.500` |
-| `end_time`    | Clip **end** time (must be greater than `start_time`)                                         | `120` / `02:00`                 |
-| `format`      | Output audio format. One of: `mp3`, `wav`, `aiff`                                             | `mp3`                           |
-| `output_path` | Destination **directory** _or_ full file path for the resulting audio. Directories are safer. | `/home/user/Music/`             |
+| `--url` / `-u` | Full video link (YouTube, Bilibili, or any format accepted by yt-dlp) | `https://youtu.be/dQw4w9WgXcQ` / `https://www.bilibili.com/video/BV1xxxxxxx` |
+| `--start` / `-s`  | [Optional] Clip **start** time. Accepts `SS`, `MM:SS`, `HH:MM:SS` or `HH:MM:SS.mmm`. Default: `00:00:00` (video start) | `90` / `01:30` / `00:01:30.500` / *leave blank for start* |
+| `--end` / `-e`    | [Optional] Clip **end** time (must be greater than `start_time`). Default: video end | `120` / `02:00` / *leave blank for end* |
+| `--format` / `-f`      | [Optional] Output audio format. One of: `mp3`, `wav`, `aiff`. Default: `mp3`                                             | `mp3`                           |
+| `--output` / `-o` | [Optional] Destination **directory** _or_ full file path for the resulting audio. Directories are safer. Default: system Downloads directory. | `/home/user/Music/`             |
 
 If you pass a directory, the script will create a filename like:
 
@@ -57,20 +61,17 @@ If you pass a directory, the script will create a filename like:
 Times are expressed in seconds (without decimals) for the filename. For example:
 
 ```bash
-python index.py \
-  "https://youtu.be/dQw4w9WgXcQ" \
-  00:01:23 \
-  00:01:53 \
-  mp3 \
-  ~/Music/
+python index.py --url https://youtu.be/dQw4w9WgXcQ --start 01:23 --end 01:53 --format mp3 --output ~/Music/
 ```
 
 The above command downloads the video, extracts the segment from 1 min 23 s to 1 min 53 s, converts it to MP3, and saves it to `~/Music/dQw4w9WgXcQ_83-113.mp3`.
 
+* If `start_time` and `end_time` are not specified, the entire audio will be exported by default.
+
 ## Tips
 
-* Large videos may take some time to download; you can pass any URL supported by yt-dlp (YouTube Shorts, playlists, etc.).
-* Ensure you respect YouTube's terms of service and local copyright laws when downloading content.
+* You can pass any URL supported by yt-dlp (YouTube, Bilibili, playlists, etc.).
+* Ensure you respect the terms of service and local copyright laws when downloading content.
 
 ## License
 

@@ -6,6 +6,7 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Tuple
+import platform
 
 try:
     import yt_dlp  # type: ignore
@@ -120,47 +121,83 @@ def run_ffmpeg(input_file: str, start: float, duration: float, output_file: Path
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Clip a segment from a YouTube video and convert it to the desired audio format.",
+        description="Clip a segment from a YouTube or Bilibili video (or any site supported by yt-dlp) and convert it to the desired audio format.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("url", help="YouTube video URL")
-    parser.add_argument("start", help="Clip start time (HH:MM:SS or MM:SS or SS[.ms])")
-    parser.add_argument("end", help="Clip end time (HH:MM:SS or MM:SS or SS[.ms])")
-    parser.add_argument("format", choices=sorted(ALLOWED_FORMATS), help="Output audio format")
+    parser.add_argument("--url", "-u", required=True, help="Video URL (YouTube, Bilibili, or any site supported by yt-dlp)")
+    parser.add_argument("--start", "-s", default=None, help="Clip start time (HH:MM:SS or MM:SS or SS[.ms]), default: 00:00:00")
+    parser.add_argument("--end", "-e", default=None, help="Clip end time (HH:MM:SS or MM:SS or SS[.ms]), default: video end")
+    parser.add_argument("--format", "-f", default="mp3", choices=sorted(ALLOWED_FORMATS), help="Output audio format, default: mp3")
     parser.add_argument(
-        "output",
-        help="Path to the output directory or full file path where the audio will be stored.",
+        "--output", "-o",
+        default=None,
+        help="Path to the output directory or full file path where the audio will be stored. Default: system Downloads directory.",
     )
 
     args = parser.parse_args()
 
-    # Validate and parse times
-    try:
-        start_sec = parse_time(args.start)
-        end_sec = parse_time(args.end)
-    except ValueError as e:
-        sys.stderr.write(str(e) + "\n")
-        sys.exit(1)
-
-    if end_sec <= start_sec:
-        sys.stderr.write("Error: end time must be greater than start time.\n")
-        sys.exit(1)
-
-    duration = end_sec - start_sec
+    # 处理 output 默认值
+    if args.output is not None:
+        output_path_arg = args.output
+    else:
+        home = str(Path.home())
+        sys_name = platform.system()
+        if sys_name == "Windows":
+            downloads = os.path.join(home, "Downloads")
+        elif sys_name == "Darwin":
+            downloads = os.path.join(home, "Downloads")
+        else:
+            # Linux: 兼容部分中文系统
+            downloads = os.path.join(home, "Downloads")
+            if not os.path.exists(downloads):
+                downloads = os.path.join(home, "下载")
+        output_path_arg = downloads
 
     with tempfile.TemporaryDirectory() as tmp_dir_name:
         tmp_dir = Path(tmp_dir_name)
 
-        # Step 1: Download video/audio
+        # Step 1: Download video/audio and get info
         print("Downloading video…", file=sys.stderr)
-        source_file, video_id = download_video(args.url, tmp_dir)
+        ydl_opts = {
+            "format": "bestaudio/best",
+            "outtmpl": str(tmp_dir / "%(_id)s.%(ext)s"),
+            "quiet": True,
+            "no_warnings": True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(args.url, download=True)
+            video_id = info.get("id") or "video"
+            downloaded_file = ydl.prepare_filename(info)
+            duration_total = info.get("duration")
+        if not os.path.exists(downloaded_file):
+            raise RuntimeError("yt-dlp failed to download the requested video.")
 
-        # Step 2: Derive output path
-        output_path = derive_output_path(args.output, video_id, start_sec, end_sec, args.format)
+        # Step 2: 处理 start/end 默认值
+        try:
+            start_sec = parse_time(args.start) if args.start is not None else 0.0
+            if args.end is not None:
+                end_sec = parse_time(args.end)
+            else:
+                if duration_total is None:
+                    sys.stderr.write("Error: Could not determine video duration. Please specify end time.\n")
+                    sys.exit(1)
+                end_sec = float(duration_total)
+        except ValueError as e:
+            sys.stderr.write(str(e) + "\n")
+            sys.exit(1)
 
-        # Step 3: Cut and convert using ffmpeg
+        if end_sec <= start_sec:
+            sys.stderr.write("Error: end time must be greater than start time.\n")
+            sys.exit(1)
+
+        duration = end_sec - start_sec
+
+        # Step 3: Derive output path
+        output_path = derive_output_path(output_path_arg, video_id, start_sec, end_sec, args.format)
+
+        # Step 4: Cut and convert using ffmpeg
         print("Processing with ffmpeg…", file=sys.stderr)
-        run_ffmpeg(source_file, start_sec, duration, output_path, args.format)
+        run_ffmpeg(downloaded_file, start_sec, duration, output_path, args.format)
 
         print(f"\nDone! Audio saved to: {output_path}")
 

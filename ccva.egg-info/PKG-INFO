@@ -1,3 +1,43 @@
+Metadata-Version: 2.4
+Name: ccva
+Version: 1.0.0
+Summary: 命令行视频音频剪辑工具 - 从 YouTube、Bilibili 等网站下载并剪辑视频音频
+Home-page: https://github.com/your-username/CCVA
+Author: CCVA Team
+Author-email: 
+Project-URL: Bug Reports, https://github.com/your-username/CCVA/issues
+Project-URL: Source, https://github.com/your-username/CCVA
+Keywords: video audio clip youtube bilibili ffmpeg yt-dlp
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Multimedia :: Video
+Classifier: Topic :: Multimedia :: Sound/Audio
+Classifier: Topic :: Internet :: WWW/HTTP
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: yt-dlp>=2025.9.5
+Requires-Dist: requests>=2.25.0
+Dynamic: author
+Dynamic: classifier
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: keywords
+Dynamic: license-file
+Dynamic: project-url
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary
+
 # CCVA
 
 一个基于 **Python 3** 的小工具，用于下载 YouTube、Bilibili（哔哩哔哩）等网站的视频，剪辑指定时段，并转换为音频文件（支持 MP3 / WAV / AIFF）。

@@ -15,7 +15,7 @@ except ImportError:
     sys.exit(1)
 
 
-ALLOWED_FORMATS = {"mp3", "wav", "aiff"}
+ALLOWED_FORMATS = {"mp3", "wav", "aiff", "mp4"}
 
 
 def parse_time(timestr: str) -> float:
@@ -57,10 +57,16 @@ def derive_output_path(output: str, video_id: str, start: float, end: float, ext
     return output_path
 
 
-def download_video(url: str, tmp_dir: Path) -> Tuple[str, str]:
+def download_video(url: str, tmp_dir: Path, fmt: str = "mp3") -> Tuple[str, str]:
     """Download the best audio/video stream using yt_dlp and return (file_path, video_id)."""
+    # 如果是MP4格式，下载最佳视频流；否则下载最佳音频流
+    if fmt == "mp4":
+        format_spec = "best[height<=1080]/best"
+    else:
+        format_spec = "bestaudio/best"
+    
     ydl_opts = {
-        "format": "bestaudio/best",
+        "format": format_spec,
         "outtmpl": str(tmp_dir / "%(_id)s.%(ext)s"),
         "quiet": True,
         "no_warnings": True,
@@ -81,12 +87,24 @@ def run_ffmpeg(input_file: str, start: float, duration: float, output_file: Path
     if fmt == "mp3":
         codec = "libmp3lame"
         extra = ["-b:a", "192k"]
+        video_args = ["-vn"]  # no video
+        audio_args = ["-acodec", codec]
     elif fmt == "wav":
         codec = "pcm_s16le"
         extra = ["-ac", "2", "-ar", "44100"]
+        video_args = ["-vn"]  # no video
+        audio_args = ["-acodec", codec]
     elif fmt == "aiff":
         codec = "pcm_s16be"
         extra = ["-ac", "2", "-ar", "44100"]
+        video_args = ["-vn"]  # no video
+        audio_args = ["-acodec", codec]
+    elif fmt == "mp4":
+        video_codec = "libx264"
+        audio_codec = "aac"
+        extra = ["-c:v", video_codec, "-c:a", audio_codec, "-preset", "medium", "-crf", "23"]
+        video_args = []  # keep video
+        audio_args = []
     else:
         raise ValueError(f"Unsupported format: {fmt}")
 
@@ -101,9 +119,8 @@ def run_ffmpeg(input_file: str, start: float, duration: float, output_file: Path
         str(duration),
         "-i",
         input_file,
-        "-vn",  # no video
-        "-acodec",
-        codec,
+        *video_args,
+        *audio_args,
         *extra,
         str(output_file),
     ]
@@ -121,17 +138,17 @@ def run_ffmpeg(input_file: str, start: float, duration: float, output_file: Path
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Clip a segment from a YouTube or Bilibili video (or any site supported by yt-dlp) and convert it to the desired audio format.",
+        description="Clip a segment from a YouTube or Bilibili video (or any site supported by yt-dlp) and convert it to the desired audio or video format.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("--url", "-u", required=True, help="Video URL (YouTube, Bilibili, or any site supported by yt-dlp)")
     parser.add_argument("--start", "-s", default=None, help="Clip start time (HH:MM:SS or MM:SS or SS[.ms]), default: 00:00:00")
     parser.add_argument("--end", "-e", default=None, help="Clip end time (HH:MM:SS or MM:SS or SS[.ms]), default: video end")
-    parser.add_argument("--format", "-f", default="mp3", choices=sorted(ALLOWED_FORMATS), help="Output audio format, default: mp3")
+    parser.add_argument("--format", "-f", default="mp3", choices=sorted(ALLOWED_FORMATS), help="Output format (audio or video), default: mp3")
     parser.add_argument(
         "--output", "-o",
         default=None,
-        help="Path to the output directory or full file path where the audio will be stored. Default: system Downloads directory.",
+        help="Path to the output directory or full file path where the file will be stored. Default: system Downloads directory.",
     )
 
     args = parser.parse_args()
@@ -158,8 +175,14 @@ def main():
 
         # Step 1: Download video/audio and get info
         print("Downloading video…", file=sys.stderr)
+        # 如果是MP4格式，下载最佳视频流；否则下载最佳音频流
+        if args.format == "mp4":
+            format_spec = "best[height<=1080]/best"
+        else:
+            format_spec = "bestaudio/best"
+        
         ydl_opts = {
-            "format": "bestaudio/best",
+            "format": format_spec,
             "outtmpl": str(tmp_dir / "%(_id)s.%(ext)s"),
             "quiet": True,
             "no_warnings": True,
@@ -195,11 +218,24 @@ def main():
         # Step 3: Derive output path
         output_path = derive_output_path(output_path_arg, video_id, start_sec, end_sec, args.format)
 
-        # Step 4: Cut and convert using ffmpeg
-        print("Processing with ffmpeg…", file=sys.stderr)
-        run_ffmpeg(downloaded_file, start_sec, duration, output_path, args.format)
+        # Step 4: 处理文件
+        if args.format == "mp4":
+            # 对于MP4格式，检查是否需要裁剪
+            if args.start is not None or args.end is not None:
+                # 需要裁剪，使用ffmpeg
+                print("Processing with ffmpeg…", file=sys.stderr)
+                run_ffmpeg(downloaded_file, start_sec, duration, output_path, args.format)
+            else:
+                # 不需要裁剪，直接复制文件
+                print("Copying downloaded file…", file=sys.stderr)
+                import shutil
+                shutil.copy2(downloaded_file, output_path)
+        else:
+            # 音频格式，使用ffmpeg转换
+            print("Processing with ffmpeg…", file=sys.stderr)
+            run_ffmpeg(downloaded_file, start_sec, duration, output_path, args.format)
 
-        print(f"\nDone! Audio saved to: {output_path}")
+        print(f"\nDone! File saved to: {output_path}")
 
 
 if __name__ == "__main__":

@@ -40,7 +40,8 @@ cd "$(dirname "$0")"
 
 # 安装 CCVA
 echo "📦 正在安装 CCVA..."
-pip3 install -e .
+# 尝试使用官方 PyPI 源，如果失败则使用默认源
+pip3 install -e . --index-url https://pypi.org/simple/ || pip3 install -e .
 
 if [ $? -eq 0 ]; then
     echo "✅ CCVA 安装成功！"

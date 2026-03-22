@@ -4,10 +4,13 @@
 
 ## 功能特点
 
-* 借助 [yt-dlp](https://github.com/yt-dlp/yt-dlp) 下载最佳音频流；
+* 借助 [yt-dlp](https://github.com/yt-dlp/yt-dlp) 下载最佳音频/视频流；
 * 基于 **FFmpeg** 进行剪辑与转码，音质无损；
 * 支持灵活的时间格式（`SS`、`MM:SS`、`HH:MM:SS[.ms]`）；
-* 如果输出路径为目录，则自动生成易读的文件名。
+* 支持批量处理多个视频 URL；
+* 支持多种输出格式：音频格式（MP3、WAV、AIFF）和视频格式（MP4）；
+* 如果输出路径为目录，则自动基于视频标题生成易读的文件名；
+* 自动从浏览器提取 cookies，解决 YouTube 身份验证问题。
 
 ## 环境依赖
 
@@ -81,14 +84,17 @@ $ python index.py --url <video_url>
 安装完成后，你可以在任意目录下使用 `CCVA` 命令：
 
 ```bash
-# 基本用法
+# 基本用法（下载整个视频并转换为 MP3）
 CCVA --url <video_url>
 
 # 指定格式和输出路径
 CCVA --url <video_url> --format <format> --output <output_path>
 
-# 指定开始和结束时间
+# 指定开始和结束时间（剪辑片段）
 CCVA --url <video_url> --start <start_time> --end <end_time> --format <format> --output <output_path>
+
+# 批量处理多个视频
+CCVA --list "[url1, url2, url3]" --format <format> --output <output_path>
 
 # 查看帮助
 CCVA --help
@@ -109,27 +115,39 @@ python index.py --url <video_url> --start <start_time> --end <end_time> --format
 | 名称            | 描述                                                                                       | 示例                               |
 | --------------- | ------------------------------------------------------------------------------------------ | ---------------------------------- |
 | `--url` / `-u`   | 视频链接（YouTube、Bilibili 或 yt-dlp 支持的任意格式） | `https://youtu.be/dQw4w9WgXcQ` / `https://www.bilibili.com/video/BV1xxxxxxx` |
+| `--list` / `-l`  | [可选] 批量处理多个视频 URL，格式：`[url1, url2, url3, ...]` | `[https://youtu.be/xxx, https://youtu.be/yyy]` |
 | `--start` / `-s`    | [可选] 剪辑 **开始** 时间，支持 `SS`、`MM:SS`、`HH:MM:SS` 或 `HH:MM:SS.mmm` 格式，默认 `00:00:00`（视频开头） | `90` / `01:30` / `00:01:30.500` / *留空则为开头* |
 | `--end` / `-e`      | [可选] 剪辑 **结束** 时间（需大于 `start_time`），默认视频结尾 | `120` / `02:00` / *留空则为结尾* |
-| `--format` / `-f`        | [可选] 输出音频格式，可选：`mp3`、`wav`、`aiff`，默认 `mp3`                                                    | `mp3`                              |
-| `--output` / `-o`   | [可选] 输出 **目录** 或完整文件路径。若为目录，脚本会自动生成文件名，默认系统下载目录                                  | `/home/user/Music/`                |
-| `--cookies-from-browser` | [可选] 从指定浏览器提取 cookies 以解决 YouTube 身份验证问题，默认 chrome | `chrome`, `firefox`, `safari`, `edge` |
+| `--format` / `-f`        | [可选] 输出格式，可选：`mp3`、`wav`、`aiff`、`mp4`，默认 `mp3`。注意：`mp4` 为视频格式，其他为音频格式                                                    | `mp3` / `mp4`                              |
+| `--output` / `-o`   | [可选] 输出 **目录** 或完整文件路径。若为目录，脚本会自动生成基于视频标题的文件名，默认系统下载目录                                  | `/home/user/Music/`                |
+| `--cookies-from-browser` | [可选] 从指定浏览器提取 cookies 以解决 YouTube 身份验证问题，默认 `chrome` | `chrome`, `firefox`, `safari`, `edge` |
 
-当 `output_path` 为目录时，脚本会生成如下文件名：
+**注意：**
+- `--url` 和 `--list` 参数必须至少提供一个
+- 当 `output_path` 为目录时，脚本会基于视频标题自动生成文件名，格式为：`<视频标题>.<扩展名>`
+- 如果输出路径是文件路径，脚本会使用该路径但会根据视频标题更新文件名
+- 对于 `mp4` 格式，如果没有指定时间范围，会直接复制整个视频文件（不进行剪辑）
 
-```
-<video_id>_<start>-<end>.<ext>
-```
-
-其中 `<start>` 与 `<end>` 取秒数的整数部分。例如：
+使用示例：
 
 ```bash
+# 下载单个视频并转换为 MP3
+CCVA --url https://youtu.be/dQw4w9WgXcQ --format mp3 --output ~/Music/
+
+# 剪辑视频片段并转换为 MP3
 CCVA --url https://youtu.be/dQw4w9WgXcQ --start 01:23 --end 01:53 --format mp3 --output ~/Music/
+
+# 下载视频并转换为 MP4（视频格式）
+CCVA --url https://youtu.be/dQw4w9WgXcQ --format mp4 --output ~/Videos/
+
+# 批量处理多个视频
+CCVA --list "[https://youtu.be/xxx, https://youtu.be/yyy]" --format mp3 --output ~/Music/
+
+# 使用 Firefox 浏览器的 cookies（解决身份验证问题）
+CCVA --url https://youtu.be/dQw4w9WgXcQ --cookies-from-browser firefox
 ```
 
-上述命令会下载该视频，截取 1 分 23 秒到 1 分 53 秒的片段，转为 MP3，并保存为 `~/Music/dQw4w9WgXcQ_83-113.mp3`。
-
-* 如未指定 `start_time` 和 `end_time`，则自动导出全段音频。
+* 如未指定 `start_time` 和 `end_time`，则自动导出全段音频/视频。
 
 ## 播客下载功能
 

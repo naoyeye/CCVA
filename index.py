@@ -273,11 +273,25 @@ def process_single_video(url: str, start: float, end: float, format_ext: str, ou
 
 def parse_url_list(url_list_str: str) -> List[str]:
     """解析URL列表字符串"""
+    import urllib.parse
     # 移除方括号
     url_list_str = url_list_str.strip('[]')
     # 按逗号分割并清理每个URL
     urls = [url.strip() for url in url_list_str.split(',')]
-    return [url for url in urls if url]  # 过滤空字符串
+    # 处理每个URL：去除反斜杠转义字符，并处理URL编码
+    cleaned_urls = []
+    for url in urls:
+        if not url:
+            continue
+        # 先尝试URL解码（处理 %5C 等情况）
+        try:
+            url = urllib.parse.unquote(url)
+        except Exception:
+            pass
+        # 去除反斜杠转义字符（如 \? 变成 ?，\= 变成 =，以及单独的 \）
+        url = url.replace('\\?', '?').replace('\\=', '=').replace('\\', '')
+        cleaned_urls.append(url)
+    return cleaned_urls
 
 
 def main():

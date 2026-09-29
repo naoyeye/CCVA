@@ -39,9 +39,15 @@ fi
 cd "$(dirname "$0")"
 
 # 安装 CCVA
+# 如遇网络问题，可设置: PIP_INDEX_URL=https://pypi.org/simple ./install.sh
+# 或临时取消代理: unset HTTP_PROXY HTTPS_PROXY; ./install.sh
 echo "📦 正在安装 CCVA..."
-# 尝试使用官方 PyPI 源，如果失败则使用默认源
-pip3 install -e . --index-url https://pypi.org/simple/ || pip3 install -e .
+if [ -n "$PIP_INDEX_URL" ]; then
+    pip3 install -e . -i "$PIP_INDEX_URL"
+else
+    # 尝试使用官方 PyPI 源，如果失败则使用默认源
+    pip3 install -e . --index-url https://pypi.org/simple/ || pip3 install -e .
+fi
 
 if [ $? -eq 0 ]; then
     echo "✅ CCVA 安装成功！"

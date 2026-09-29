@@ -16,7 +16,8 @@
 
 1. **Python 3.7+**；
 2. 系统已安装 **FFmpeg** 且可通过 `PATH` 调用；
-3. Python 包 **yt-dlp**（通过 `requirements.txt` 自动安装）。
+3. Python 包 **yt-dlp[default]**（含 EJS 签名解析，通过 `requirements.txt` 自动安装）；
+4. **Deno**（用于 YouTube 签名验证，推荐）：`brew install deno`。
 
 在 Ubuntu / Debian 系统上，可通过以下命令安装 FFmpeg：
 

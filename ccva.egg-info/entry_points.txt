@@ -1,3 +1,0 @@
-[console_scripts]
-CCVA = index:cli
-CCVA-Podcast = podcast_helper:main
